@@ -3,7 +3,8 @@ extern crate midir;
 extern crate serde;
 extern crate symphonia;
 use jack::ClientStatus;
-use jack::{Client, ClosureProcessHandler, Control};
+use jack::contrib::ClosureProcessHandler;
+use jack::{Client, Control};
 use midir::{MidiInput, MidiInputConnection};
 use serde::Deserialize;
 use std::env;
@@ -69,12 +70,15 @@ fn process_samples_json(
     };
     let path = Path::new(file_path);
     let directory_path = path.parent().unwrap().display();
+
     let binding = directory_path.to_string();
     let directory_path = binding.as_str();
     for p in config.samples_descr.iter_mut() {
-        p.path = directory_path.to_string() + "/" + p.path.as_str();
-        eprintln!("p.path: {}", p.path);
-    }
+	let ds = directory_path.to_string();
+	if !ds.is_empty() {
+	    p.path = ds.to_string() + "/" + p.path.as_str()
+	}
+    };
 
     Ok(config.samples_descr)
 }
@@ -82,6 +86,8 @@ fn process_samples_json(
 fn main() {
     // Get and process command line arguments.
     let args: Vec<String> = env::args().collect();
+
+    // Sample files and notes
     let samples_descr: Vec<SampleDescr> =
         match process_samples_json(args[1].as_str()) {
             Ok(sd) => sd,
@@ -203,7 +209,7 @@ fn main() {
         } else {
             path.as_str()
         };
-        eprintln!("{disp_path}  Total size() {sample_count}");
+	eprintln!("Path: {disp_path}", );
 
         // Store prepared sample
         sample_data.push(SampleData { data, note });
@@ -221,7 +227,7 @@ fn main() {
 
     // Create the Jack client
     let (client, status) = match Client::new(
-        "MidiSampleQzn3t",
+        "MidiSampleQzn3tJack",
         jack::ClientOptions::NO_START_SERVER,
     ) {
         Ok(a) => a,
@@ -231,7 +237,7 @@ fn main() {
     if status != ClientStatus::empty() {
         panic!("Failed");
     }
-    let mut port = client.register_port("output", jack::AudioOut);
+    let mut port = client.register_port("output", jack::AudioOut::default());
 
     // Activate the Jack client and start the audio processing thread
     let _as_client = client
@@ -241,7 +247,7 @@ fn main() {
                 move |_c: &Client, ps: &jack::ProcessScope| -> Control {
                     let output = port.as_mut().unwrap().as_mut_slice(ps);
 
-                    for (_frame, sample) in output.iter_mut().enumerate() {
+                    for sample in output.iter_mut() {
                         let mut f: f32 = 0.0;
                         for r in receivers.iter() {
                             if let Ok(_f) = r.try_recv() {
@@ -269,9 +275,9 @@ fn main() {
         .unwrap();
 
     // Create a virtual midi port to read in data
-    let lpx_midi = MidiInput::new("MidiSampleQzn3t").unwrap();
+    let lpx_midi = MidiInput::new("MidiSampleQzn3tMidi").unwrap();
     let in_ports = lpx_midi.ports();
-    let in_port = in_ports.get(0).ok_or("no input port available").unwrap();
+    let in_port = in_ports.first().ok_or("no input port available").unwrap();
 
     // // Create the channel that the buf reading closure uses to send data
     // let (sender, receiver) = channel::<f32>();
