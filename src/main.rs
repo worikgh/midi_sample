@@ -2,8 +2,8 @@ extern crate jack;
 extern crate midir;
 extern crate serde;
 extern crate symphonia;
-use jack::ClientStatus;
 use jack::contrib::ClosureProcessHandler;
+use jack::ClientStatus;
 use jack::{Client, Control};
 use midir::{MidiInput, MidiInputConnection};
 use serde::Deserialize;
@@ -33,7 +33,7 @@ const NUM_RECEIVERS: usize = 300;
 
 /// Each sample is described by a path to an audio file and a MIDI
 /// note
-#[derive(Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize)]
 struct SampleDescr {
     path: String,
     note: u8,
@@ -43,6 +43,13 @@ struct SampleDescr {
 #[derive(Debug, Deserialize)]
 struct Config {
     samples_descr: Vec<SampleDescr>,
+}
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            samples_descr: vec![SampleDescr::default()],
+        }
+    }
 }
 
 /// Each sample is converted to a `Vec<32>` buffer and a MIDI note on
@@ -66,7 +73,9 @@ fn process_samples_json(
     // Convert JSON
     let mut config: Config = match serde_json::from_str(&contents) {
         Ok(s) => s,
-        Err(err) => panic!("{err}: Processing JSON"),
+        Err(err) => {
+            return Ok(vec![]);
+        },
     };
     let path = Path::new(file_path);
     let directory_path = path.parent().unwrap().display();
@@ -74,19 +83,21 @@ fn process_samples_json(
     let binding = directory_path.to_string();
     let directory_path = binding.as_str();
     for p in config.samples_descr.iter_mut() {
-	let ds = directory_path.to_string();
-	if !ds.is_empty() {
-	    p.path = ds.to_string() + "/" + p.path.as_str()
-	}
-    };
-
+        let ds = directory_path.to_string();
+        if !ds.is_empty() {
+            p.path = ds.to_string() + "/" + p.path.as_str()
+        }
+    }
     Ok(config.samples_descr)
 }
 
 fn main() {
     // Get and process command line arguments.
     let args: Vec<String> = env::args().collect();
-
+    if args.len() == 1 {
+        eprintln!("Hello, world: {:?}", Config::default());
+        return;
+    }
     // Sample files and notes
     let samples_descr: Vec<SampleDescr> =
         match process_samples_json(args[1].as_str()) {
@@ -209,7 +220,6 @@ fn main() {
         } else {
             path.as_str()
         };
-	eprintln!("Path: {disp_path}", );
 
         // Store prepared sample
         sample_data.push(SampleData { data, note });
