@@ -18,8 +18,8 @@ struct Config {
 
 ## MIDI Port
 
-`MidiSampleQzn3tMidi` 
+A MIDI port named `MidiSampleQzn3tMidi` is created to receive MIDI signals.  Notes are looked up in the `SampleDescr`s and played when MIDI notesample arrives
 
 ## Jack Port
 
-`MidiSampleQzn3tJack:output`
+A Jack port named `MidiSampleQzn3tJack:output` is the output

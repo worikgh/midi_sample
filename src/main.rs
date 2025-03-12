@@ -136,7 +136,7 @@ fn main() {
         // Store the track identifier, we'll use it to filter packets.
         let track_id = track.id;
 
-        let mut sample_count = 0;
+        // let mut sample_count = 0;
         let mut sample_buf: Option<SampleBuffer<f32>> = None;
         let mut data: Vec<f32> = vec![];
 
@@ -189,7 +189,7 @@ fn main() {
 
                             // The samples may now be access via the
                             // `samples()` function.
-                            sample_count += buf.samples().len();
+                            // sample_count += buf.samples().len();
                             data.append(&mut buf.samples().to_vec());
                         }
                     },
@@ -238,14 +238,16 @@ fn main() {
         panic!("Failed");
     }
     let mut port = client.register_port("output", jack::AudioOut::default());
-
+    let mut counter = 0;
     // Activate the Jack client and start the audio processing thread
     let _as_client = client
         .activate_async(
             (),
             ClosureProcessHandler::new(
                 move |_c: &Client, ps: &jack::ProcessScope| -> Control {
-                    let output = port.as_mut().unwrap().as_mut_slice(ps);
+		    counter += 1;
+		    eprintln!("DBG midi_sample:main.rs Jack Clousure loop# {counter}");
+                    let output:&mut [f32] = port.as_mut().unwrap().as_mut_slice(ps);
 
                     for sample in output.iter_mut() {
                         let mut f: f32 = 0.0;
@@ -290,14 +292,13 @@ fn main() {
             "midi_input",
             move |_stamp, message: &[u8], _| {
                 // let message = MidiMessage::from_bytes(message.to_vec());
-
+		eprintln!("DBG midi_sample:main.rs midi input closure message: {message:?}");
                 if message.len() == 3 && message[0] == 144 {
                     // All MIDI notes from LPX start with 144, for initial
                     // noteon and noteoff
                     let velocity = message[2];
                     if velocity != 0 {
                         // NoteOn
-                        // eprintln!("Message: {message:?}");
                         if let Some(sample) =
                             sample_data.iter().find(|s| s.note == message[1])
                         {
