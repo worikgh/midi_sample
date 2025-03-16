@@ -73,7 +73,7 @@ fn process_samples_json(
     // Convert JSON
     let mut config: Config = match serde_json::from_str(&contents) {
         Ok(s) => s,
-        Err(err) => {
+        Err(_err) => {
             return Ok(vec![]);
         },
     };
@@ -95,7 +95,7 @@ fn main() {
     // Get and process command line arguments.
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
-        eprintln!("Hello, world: {:?}", Config::default());
+        eprintln!("Pass a configuration file.  Like: {:?}", Config::default());
         return;
     }
     // Sample files and notes
@@ -105,8 +105,8 @@ fn main() {
             Err(err) => panic!("{}: Failed to process input", err),
         };
 
-    // Prepare the sample buffers.  This code is from the Symphonia
-    // example
+    // Prepare the sample buffers in `sample_data`.  This code is from
+    // the Symphonia example
     let mut sample_data: Vec<SampleData> = vec![];
     for SampleDescr { path, note } in samples_descr {
         // Create a media source. Note that the MediaSource trait is
@@ -147,7 +147,6 @@ fn main() {
         // Store the track identifier, we'll use it to filter packets.
         let track_id = track.id;
 
-        // let mut sample_count = 0;
         let mut sample_buf: Option<SampleBuffer<f32>> = None;
         let mut data: Vec<f32> = vec![];
 
@@ -215,7 +214,7 @@ fn main() {
 
         // Extract the file name part of the sample to output some
         // stats.
-        let disp_path = if let Some(idx) = path.rfind('/') {
+        let _disp_path = if let Some(idx) = path.rfind('/') {
             path.get(idx..).unwrap()
         } else {
             path.as_str()
@@ -255,9 +254,12 @@ fn main() {
             (),
             ClosureProcessHandler::new(
                 move |_c: &Client, ps: &jack::ProcessScope| -> Control {
-		    counter += 1;
-		    eprintln!("DBG midi_sample:main.rs Jack Clousure loop# {counter}");
-                    let output:&mut [f32] = port.as_mut().unwrap().as_mut_slice(ps);
+                    counter += 1;
+                    eprintln!(
+                        "DBG midi_sample:main.rs Jack Closure loop# {counter}"
+                    );
+                    let output: &mut [f32] =
+                        port.as_mut().unwrap().as_mut_slice(ps);
 
                     for sample in output.iter_mut() {
                         let mut f: f32 = 0.0;
@@ -271,13 +273,6 @@ fn main() {
                         // Unsure if this is the thing to do.  `tanh`
                         // is almost linear except in the extremes
                         // where it assymptotically approaches -1 and
-                        // 1
-                        // if f > 1.0 || f < -1.0 {
-                        //     eprintln!(
-                        //         "Sample is: {f}.  Adjusting too: {}",
-                        //         f.tanh()
-                        //     );
-                        // }
                         *sample = f.tanh();
                     }
                     Control::Continue
