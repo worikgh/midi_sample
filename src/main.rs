@@ -291,24 +291,21 @@ fn main() {
     let in_ports = lpx_midi.ports();
     let in_port = in_ports.first().ok_or("no input port available").unwrap();
 
-    // // Create the channel that the buf reading closure uses to send data
-    // let (sender, receiver) = channel::<f32>();
-
-    // Index the clousre below maintains for output clients
+    // Index/name the output clients
     let mut idx = 0;
     let _conn_in: MidiInputConnection<()> = lpx_midi
         .connect(
             in_port,
             "midi_input",
             move |_stamp, message: &[u8], _| {
-                // let message = MidiMessage::from_bytes(message.to_vec());
-		eprintln!("DBG midi_sample:main.rs midi input closure message: {message:?}");
+		eprintln!("DBG midi_sample:main.rs message({idx}): {message:?}");
                 if message.len() == 3 && message[0] == 144 {
                     // All MIDI notes from LPX start with 144, for initial
                     // noteon and noteoff
                     let velocity = message[2];
                     if velocity != 0 {
-                        // NoteOn
+                        // NoteOn.  Get the sample, if any, associated
+                        // with theat note.
                         if let Some(sample) =
                             sample_data.iter().find(|s| s.note == message[1])
                         {
