@@ -255,9 +255,11 @@ fn main() {
             ClosureProcessHandler::new(
                 move |_c: &Client, ps: &jack::ProcessScope| -> Control {
                     counter += 1;
-                    eprintln!(
-                        "DBG midi_sample:main.rs Jack Closure loop# {counter}"
-                    );
+                    if counter % 1_000 == 0{
+			eprintln!(
+                            "DBG midi_sample:main.rs Jack Closure loop# {counter}"
+			);
+		    }
                     let output: &mut [f32] =
                         port.as_mut().unwrap().as_mut_slice(ps);
 
