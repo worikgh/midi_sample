@@ -3,12 +3,10 @@ name = "midi_sample"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 jack = "0.13"
 midir = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
-symphonia = { version = "0.5", features = ["flac", "wav"] }
+symphonia = { version = "0.5", features = ["all-codecs"] }
