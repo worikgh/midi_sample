@@ -24,6 +24,12 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
+/// The MIDI Port that MIDI notes must be sent to to play samples
+const MIDI_PORT: &str = "MidiSampleQzn3tMidi";
+
+/// The Jack port that audio data is output on
+const JACK_PORT: &str = "MidiSampleQzn3tJack";
+
 /// There need to be enough of these that there is always one channel
 /// available.  If long samples (that tie up a channel) are being
 /// played in quick succession each new (long) sample ties up another
@@ -235,13 +241,11 @@ fn main() {
     }
 
     // Create the Jack client
-    let (client, status) = match Client::new(
-        "MidiSampleQzn3tJack",
-        jack::ClientOptions::NO_START_SERVER,
-    ) {
-        Ok(a) => a,
-        Err(err) => panic!("Err: {err}"),
-    };
+    let (client, status) =
+        match Client::new(JACK_PORT, jack::ClientOptions::NO_START_SERVER) {
+            Ok(a) => a,
+            Err(err) => panic!("Err: {err}"),
+        };
 
     if status != ClientStatus::empty() {
         panic!("Failed");
@@ -284,7 +288,7 @@ fn main() {
         .unwrap();
 
     // Create a virtual midi port to read in data
-    let lpx_midi = MidiInput::new("MidiSampleQzn3tMidi").unwrap();
+    let lpx_midi = MidiInput::new(MIDI_PORT).unwrap();
     let in_ports = lpx_midi.ports();
     let in_port = in_ports.first().ok_or("no input port available").unwrap();
 
@@ -295,7 +299,9 @@ fn main() {
             in_port,
             "midi_input",
             move |_stamp, message: &[u8], _| {
-		eprintln!("DBG midi_sample:main.rs message({idx}): {message:?}");
+                eprintln!(
+                    "DBG midi_sample:main.rs message({idx}): {message:?}"
+                );
                 if message.len() == 3 && message[0] == 144 {
                     // All MIDI notes from LPX start with 144, for initial
                     // noteon and noteoff
