@@ -331,11 +331,6 @@ fn main() {
             (),
         )
         .unwrap();
-    // Wait for the user to press enter to exit
-    // eprintln!("Press enter to exit...");
-    // let _ = std::io::stdin().read_line(&mut String::new());
-    // // Deactivate the Jack client and stop the audio processing thread
-    // as_client.deactivate().unwrap();
     loop {
         thread::sleep(Duration::from_secs(1_000));
     }
